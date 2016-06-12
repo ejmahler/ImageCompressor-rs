@@ -1,0 +1,10 @@
+[package]
+name = "image_compressor"
+version = "0.1.0"
+authors = ["Elliott Mahler <join.together@gmail.com>"]
+
+[dependencies]
+image = "*"
+argparse = "*"
+protobuf = "*"
+flate2 = "*"

@@ -1,0 +1,11 @@
+option optimize_for = LITE_RUNTIME;
+
+message compressed_image
+{
+	optional uint32 width = 2;
+	optional uint32 height = 3;
+	repeated sint32 red = 6 [packed=true];
+	repeated sint32 green = 7 [packed=true];
+	repeated sint32 blue = 8 [packed=true];
+	repeated sint32 alpha = 9 [packed=true];
+}
