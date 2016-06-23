@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use ::image;
 use ::image::GenericImage;
 
-use math_utils;
+use dct;
 use quantize;
 
 use compressed_image;
@@ -105,11 +105,16 @@ fn compress_color_channel(width: u32, height: u32, uncompressed_channel_data: Ve
     let flat_size = width as usize * height as usize;
     let mut intermediate: Vec<i32> = Vec::with_capacity(width as usize * height as usize);
 
+    let mut dct2 = dct::DCT2::new(width as usize);
+
+    let mut row_spectrum = vec![0_f32; width as usize];
     for (row_index, row_data) in uncompressed_channel_data.chunks(width as usize).enumerate() {
-        let compressed_row = quantize::encode(math_utils::dct_type_2(row_data).as_slice());
+        dct2.process(row_data, row_spectrum.as_mut_slice());
+
+        let compressed_row = quantize::encode(row_spectrum.as_slice());
         intermediate.extend(compressed_row);
 
-        if row_index%20 == 0 {
+        if row_index%200 == 0 {
             println!("{}", row_index);
         }
     }

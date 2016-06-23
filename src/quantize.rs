@@ -1,4 +1,4 @@
-const NUM_ZONES: usize = 100;
+const NUM_ZONES: usize = 2000;
 
 pub fn encode(input: &[f32]) -> Vec<i32> {
     let quantize_vec = make_quantize_vec(input.len());
@@ -28,10 +28,10 @@ fn make_quantize_vec(size: usize) -> Vec<f32> {
 
     let mut result = Vec::with_capacity(size);
 
-    let bucket_size = size / NUM_ZONES;
+    result.push(1_f32);
 
-    for i in 0..size {
-        result.push(((i / bucket_size) * 4 + 1 + NUM_ZONES) as f32);
+    for i in 1..size {
+        result.push((i * 2 + NUM_ZONES) as f32);
     }
 
     return result;

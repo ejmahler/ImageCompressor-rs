@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use ::image;
 
-use math_utils;
+use dct;
 use quantize;
 
 use flate2::read::ZlibDecoder;
@@ -44,7 +44,6 @@ pub fn uncompress_file_to_output(input_filename: &Path, output_filename: &Path) 
         Some(ext) => assert!(ext == "png", "Output file for uncompression must be PNG"),
         _ => {}
     }
-    println!("{:?}",input_filename);
 
     let mut input_file = File::open(&Path::new(&input_filename)).unwrap();
     let mut output_file = File::create(&Path::new(&output_filename)).unwrap();
@@ -92,24 +91,28 @@ fn uncompress(input: &mut File, output: &mut File) {
 fn uncompress_color_channel(width: u32, height: u32, compressed_channel_data: Vec<i32>) -> Vec<f32> {
     let mut result: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
 
+    let mut dct = dct::DCT3::new(width as usize);
+
     //the compressed data is encoded as a difference between rows. to decode it, we'll add each row to sum_row and then decode sum_row
     let mut sum_row = vec![0_i32; width as usize];
+    let mut dct_output = vec![0_f32; width as usize];
 
     for (row_index, row_data) in compressed_channel_data.chunks(width as usize).enumerate() {
         for(sum_entry, encoded_entry) in sum_row.iter_mut().zip(row_data.iter()) {
             *sum_entry += *encoded_entry;
         }
 
-        let mut uncompressed_row = math_utils::dct_type_3(&quantize::decode(sum_row.as_slice()));
+        let decoded_row = quantize::decode(sum_row.as_slice());
+        dct.process(decoded_row.as_slice(), dct_output.as_mut_slice());
 
         //we need to scale each element by 2/N in order to get back to the original data
-        for element in uncompressed_row.iter_mut() {
+        for element in dct_output.iter_mut() {
             *element *= 2_f32 / (width as f32);
         }
 
-        result.extend(uncompressed_row);
+        result.extend(&dct_output);
 
-        if row_index%20 == 0 {
+        if row_index%200 == 0 {
             println!("{}", row_index);
         }
     }

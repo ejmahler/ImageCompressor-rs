@@ -2,6 +2,8 @@ extern crate argparse;
 extern crate image;
 extern crate protobuf;
 extern crate flate2;
+extern crate num;
+extern crate rustfft;
 
 use argparse::{ArgumentParser, Store};
 
@@ -12,7 +14,7 @@ mod compress;
 mod uncompress;
 mod quantize;
 mod compressed_image;
-pub mod math_utils;
+mod dct;
 
 #[allow(non_camel_case_types)]
 enum Command {
