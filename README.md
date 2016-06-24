@@ -9,12 +9,12 @@ This project requires Rust 1.9 or later, but no other dependencies. Build with `
 
 # Usage
 ## Compression
-`./image_compressor compress myImage.png [--output=target.msca]`
+`./image_compressor compress path/to/myImage.png [--output=otherPath/to/target.msca]`
 
 If the output path isn't specified, it'll be the input path, with the extension changed to ".msca". There are no other supported arguments at this time.
 
 ## Uncompression
-`./image_compressor uncompress myImage.msca [--output=target.png]`
+`./image_compressor uncompress path/to/myImage.msca [--output=otherPath/to/target.png]`
 
 If the output path isn't specified, it'll be the input path, with the extension changed to ".png". There are no other supported arguments at this time.
 
