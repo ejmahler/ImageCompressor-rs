@@ -20,7 +20,7 @@ If the output path isn't specified, it'll be the input path, with the extension 
 
 
 # Performance
-The primary factor in performance is in the divisibility of the uimage size. The compression involves a 2-dimensional FFT, and the underlying algorithm performs a prime factorization on the image dimensions. Images with many small prime factors will compute very quickly, while images with prime width or height will compute very slowly.
+The compression algorithm involves a 2-dimensional FFT, and the underlying FFT algorithm performs a prime factorization on the image dimensions. Images with many small prime factors will compute very quickly, while images with prime width or height will compute very slowly.
 
 # License
 GPL v3
