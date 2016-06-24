@@ -84,10 +84,10 @@ fn compress(input: &File, output: &mut File) {
     serializer.set_height(height);
 
     //compress the data and put it directly into the serializer
-    serializer.set_red(compress_color_channel(width, height, red_channel));
-    serializer.set_green(compress_color_channel(width, height, green_channel));
-    serializer.set_blue(compress_color_channel(width, height, blue_channel));
-    serializer.set_alpha(compress_color_channel(width, height, alpha_channel));
+    serializer.set_red(compress_color_channel(width as usize, height as usize, red_channel));
+    serializer.set_green(compress_color_channel(width as usize, height as usize, green_channel));
+    serializer.set_blue(compress_color_channel(width as usize, height as usize, blue_channel));
+    serializer.set_alpha(compress_color_channel(width as usize, height as usize, alpha_channel));
 
     let serialized_bytes = serializer.write_to_bytes().unwrap();
 
@@ -101,33 +101,7 @@ fn compress(input: &File, output: &mut File) {
     let _ = enc.finish();
 }
 
-fn compress_color_channel(width: u32, height: u32, uncompressed_channel_data: Vec<f32>) -> Vec<i32> {
-    let flat_size = width as usize * height as usize;
-    let mut intermediate: Vec<i32> = Vec::with_capacity(width as usize * height as usize);
-
-    let mut dct2 = dct::DCT2::new(width as usize);
-
-    let mut row_spectrum = vec![0_f32; width as usize];
-    for (row_index, row_data) in uncompressed_channel_data.chunks(width as usize).enumerate() {
-        dct2.process(row_data, row_spectrum.as_mut_slice());
-
-        let compressed_row = quantize::encode(row_spectrum.as_slice());
-        intermediate.extend(compressed_row);
-
-        if row_index%200 == 0 {
-            println!("{}", row_index);
-        }
-    }
-
-    //rather than storign the intermediate directly, we're going to take a second step of computing the difference between rows, and ultimately storign that
-    //the only exception will be the first row, since we have nothing  to compute a difference with
-    let mut result: Vec<i32> = Vec::with_capacity(width as usize * height as usize);
-    result.extend(&intermediate[0..width as usize]);
-
-    //store the difference between each value and the corresponding value in the row above
-    for i in width as usize..flat_size {
-        result.push(intermediate[i] - intermediate[i - width as usize]);
-    }
-
-    return result;
+fn compress_color_channel(width: usize, height: usize, mut uncompressed_channel_data: Vec<f32>) -> Vec<i32> {
+    dct::dct2_2d(width, height, &mut uncompressed_channel_data);
+    return quantize::encode(width, height, &uncompressed_channel_data);
 }

@@ -64,10 +64,10 @@ fn uncompress(input: &mut File, output: &mut File) {
     let height = deserialized.get_height();
 
     //perform the decompression
-    let uncompressed_red = uncompress_color_channel(width, height, deserialized.take_red());
-    let uncompressed_green = uncompress_color_channel(width, height, deserialized.take_green());
-    let uncompressed_blue = uncompress_color_channel(width, height, deserialized.take_blue());
-    let uncompressed_alpha = uncompress_color_channel(width, height, deserialized.take_alpha());
+    let uncompressed_red = uncompress_color_channel(width as usize, height as usize, deserialized.take_red());
+    let uncompressed_green = uncompress_color_channel(width as usize, height as usize, deserialized.take_green());
+    let uncompressed_blue = uncompress_color_channel(width as usize, height as usize, deserialized.take_blue());
+    let uncompressed_alpha = uncompress_color_channel(width as usize, height as usize, deserialized.take_alpha());
 
     //create the output image and load the data in
     let mut output_image = image::ImageBuffer::new(width, height);
@@ -88,36 +88,26 @@ fn uncompress(input: &mut File, output: &mut File) {
     let _ = image::ImageRgba8(output_image).save(output, image::PNG);
 }
 
-fn uncompress_color_channel(width: u32, height: u32, compressed_channel_data: Vec<i32>) -> Vec<f32> {
-    let mut result: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
+fn uncompress_color_channel(width: usize, height: usize, quantized_data: Vec<i32>) -> Vec<f32> {
+    
+    let mut decoded_data = quantize::decode(width, height, &quantized_data);
 
-    let mut dct = dct::DCT3::new(width as usize);
+    //run a 2d DCT3 on the input data
+    println!("");
+    println!("{:?}", quantized_data[..20].to_vec());
+    println!("{:?}", decoded_data[..20].to_vec());
+    dct::dct3_2d(width, height, &mut decoded_data);
+    
 
-    //the compressed data is encoded as a difference between rows. to decode it, we'll add each row to sum_row and then decode sum_row
-    let mut sum_row = vec![0_i32; width as usize];
-    let mut dct_output = vec![0_f32; width as usize];
-
-    for (row_index, row_data) in compressed_channel_data.chunks(width as usize).enumerate() {
-        for(sum_entry, encoded_entry) in sum_row.iter_mut().zip(row_data.iter()) {
-            *sum_entry += *encoded_entry;
-        }
-
-        let decoded_row = quantize::decode(sum_row.as_slice());
-        dct.process(decoded_row.as_slice(), dct_output.as_mut_slice());
-
-        //we need to scale each element by 2/N in order to get back to the original data
-        for element in dct_output.iter_mut() {
-            *element *= 2_f32 / (width as f32);
-        }
-
-        result.extend(&dct_output);
-
-        if row_index%200 == 0 {
-            println!("{}", row_index);
-        }
+    //finally, scale the result by 4 / n^2 to get the original image data (or what's left of it)
+    let result_scale = 4_f32 / (decoded_data.len()) as f32;
+    for item in decoded_data.iter_mut() {
+        *item *= result_scale;
     }
 
-    return result;
+    println!("{:?}", decoded_data[..20].to_vec());
+
+    return decoded_data;
 }
 
 fn convert_to_8bit(item: f32) -> u8 {

@@ -2,6 +2,8 @@ use std::f32;
 use rustfft;
 use num::{Complex, Zero, FromPrimitive, Signed};
 
+use super::math_utils;
+
 pub struct DCT2<T> {
     fft: rustfft::FFT<T>,
     fft_input: Vec<Complex<T>>,
@@ -66,6 +68,33 @@ impl<T> DCT2<T> where T: Signed + FromPrimitive + Copy {
     }
 }
 
+//perform a 2-dimensional dct2 on the input data, putting the result into the input vector
+pub fn dct2_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
+    let mut intermediate = vec![0_f32; row_major_data.len()];
+
+    //perform DCTs down the rows
+    {
+        let mut width_dct = DCT2::new(width);
+        for (input, output) in row_major_data.chunks(width).zip(intermediate.chunks_mut(width)) {
+            width_dct.process(input, output);
+        }
+    }
+
+    //transpose the result back into the input vector
+    math_utils::transpose(width, height, intermediate.as_slice(), row_major_data);
+
+    //perform DCTs down the rows of the transposed data, putting the result back in the original input
+    {
+        let mut height_dct = DCT2::new(height);
+        for (input, output) in row_major_data.chunks(height).zip(intermediate.chunks_mut(height)) {
+            height_dct.process(input, output);
+        }
+    }
+
+    //transpose the result back into the input vector
+    math_utils::transpose(height, width, intermediate.as_slice(), row_major_data);
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -111,26 +140,83 @@ mod test {
 
     #[test]
     fn test_slow() {
-        let input = vec![4_f32, 1_f32, 6_f32, 2_f32, 8_f32];
-        let output = execute_slow(&input);
-        let expected =
-            vec![21_f32, -4.39201132_f32, 2.78115295_f32, -1.40008449_f32, 7.28115295_f32];
+        let input_list = vec![
+            vec![1_f32, 1_f32],
+            vec![1_f32, 1_f32, 1_f32, 1_f32],
+            vec![4_f32, 1_f32, 6_f32, 2_f32, 8_f32],
+        ];
+        let expected_list = vec![
+            vec![2_f32, 0_f32],
+            vec![4_f32, 0_f32, 0_f32, 0_f32],
+            vec![21_f32, -4.39201132_f32, 2.78115295_f32, -1.40008449_f32, 7.28115295_f32],
+        ];
 
-        compare_float_vectors(&expected.as_slice(), &output.as_slice());
+        for (input, expected) in input_list.iter().zip(expected_list.iter()) {
+            let output = execute_slow(&input);
+
+            println!("{:?}", output);
+
+            compare_float_vectors(&expected.as_slice(), &output.as_slice());
+        }
     }
 
     #[test]
     fn test_fast() {
-        let input = vec![4_f32, 1_f32, 6_f32, 2_f32, 8_f32];
-        let slow_output = execute_slow(&input);
+        let input_list = vec![
+            vec![1_f32, 1_f32],
+            vec![1_f32, 1_f32, 1_f32, 1_f32],
+            vec![4_f32, 1_f32, 6_f32, 2_f32, 8_f32],
+        ];
 
-        let mut dct = DCT2::new(input.len());
-        let mut fast_output = input.clone();
-        dct.process(&input, &mut fast_output);
+        for input in input_list {
+            let slow_output = execute_slow(&input);
 
-        println!("{:?}", slow_output);
-        println!("{:?}", fast_output);
+            let mut dct = DCT2::new(input.len());
+            let mut fast_output = input.clone();
+            dct.process(&input, &mut fast_output);
 
-        compare_float_vectors(&slow_output.as_slice(), &fast_output);
+            println!("{:?}", slow_output);
+            println!("{:?}", fast_output);
+
+            compare_float_vectors(&slow_output.as_slice(), &fast_output);
+        }
+    }
+
+    #[test]
+    fn test_2d() {
+        let input_list = vec![
+            (2 as usize, 2 as usize, vec![
+                1_f32, 1_f32,
+                1_f32, 1_f32,
+            ]),
+            (3 as usize, 2 as usize, vec![
+                1_f32, 1_f32, 1_f32,
+                1_f32, 1_f32, 1_f32
+            ]),
+        ];
+        let expected_list = vec![
+            vec![
+                4_f32, 0_f32,
+                0_f32, 0_f32,
+            ],
+            vec![
+                6_f32, 0_f32, 0_f32,
+                0_f32, 0_f32, 0_f32
+            ],
+        ];
+
+        for i in 0..input_list.len() {
+            let (width, height, ref input) = input_list[i];
+
+            let mut output = input.clone();
+            dct2_2d(width, height, output.as_mut_slice());
+
+            println!("");
+            println!("input:   {:?}", input);
+            println!("actual:  {:?}", output);
+            println!("expected:{:?}", expected_list[i]);
+
+            compare_float_vectors(&expected_list[i].as_slice(), &output.as_slice());
+        }
     }
 }
