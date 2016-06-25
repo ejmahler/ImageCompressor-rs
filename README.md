@@ -4,6 +4,8 @@ This is a novelty image compression program. It can compress PNG files to the cu
 
 Its algorithm is similar to jpeg's algorithm, with the same 2d DCT and quantization steps -- but while jpeg operates on 8x8 blocks, this algorithm operates on an entire color channel at once.
 
+It currently achieves comparable compression rates to jpeg at similar quality, although it's difficult to quantify the quality differences.
+
 # Building
 This project requires Rust 1.9 or later, but no other dependencies. Build with `cargo build --release`
 
