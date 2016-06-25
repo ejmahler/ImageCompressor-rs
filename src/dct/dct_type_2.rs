@@ -68,12 +68,8 @@ impl<T> DCT2<T>
         self.fft.process(&self.fft_input, &mut self.fft_output);
 
         // apply a correction factor to the result
-        for i in 0..signal.len() {
-            unsafe {
-                *spectrum.get_unchecked_mut(i) = (*self.fft_output.get_unchecked(i) *
-                                                  *self.output_correction.get_unchecked(i))
-                    .re;
-            }
+        for ((fft_entry, correction_entry),  spectrum_entry) in self.fft_output.iter().zip(self.output_correction.iter()).zip(spectrum.iter_mut()) {
+            *spectrum_entry = (fft_entry * correction_entry).re;
         }
     }
 }
