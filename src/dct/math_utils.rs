@@ -1,17 +1,19 @@
 
-pub fn transpose<T>(width: usize, height: usize, input: &[T], output: &mut[T]) where T: Copy {
-	assert_eq!(width*height, input.len());
+pub fn transpose<T>(width: usize, height: usize, input: &[T], output: &mut [T])
+    where T: Copy
+{
+    assert_eq!(width * height, input.len());
 
-	for y in 0..height {
-		for x in 0..width {
-			let input_index = x + y * width;
-			let output_index = y + x * height;
+    for y in 0..height {
+        for x in 0..width {
+            let input_index = x + y * width;
+            let output_index = y + x * height;
 
-			unsafe {
-				*output.get_unchecked_mut(output_index) = *input.get_unchecked(input_index);
-			}
-		}
-	}
+            unsafe {
+                *output.get_unchecked_mut(output_index) = *input.get_unchecked(input_index);
+            }
+        }
+    }
 }
 
 
@@ -27,7 +29,7 @@ mod test {
     fn compare_float_vectors(expected: &[f32], observed: &[f32]) {
         assert_eq!(expected.len(), observed.len());
 
-        let tolerance : f32 = 0.0001;
+        let tolerance: f32 = 0.0001;
 
         for i in 0..expected.len() {
             assert!(fuzzy_cmp(observed[i], expected[i], tolerance));
@@ -75,7 +77,7 @@ mod test {
             let mut output = input.clone();
             transpose(width, height, input.as_slice(), output.as_mut_slice());
 
-            
+
             println!("input:   {:?}", input);
             println!("actual:  {:?}", output);
             println!("expected:{:?}", expected_list[i]);

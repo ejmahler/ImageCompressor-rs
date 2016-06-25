@@ -13,7 +13,7 @@ mod test {
     fn compare_float_vectors(expected: &[f32], observed: &[f32]) {
         assert_eq!(expected.len(), observed.len());
 
-        let tolerance : f32 = 0.0001;
+        let tolerance: f32 = 0.0001;
 
         for i in 0..expected.len() {
             assert!(fuzzy_cmp(observed[i], expected[i], tolerance));
@@ -33,7 +33,8 @@ mod test {
 
             for i in 1..(size - 1) {
                 let i_float = i as f32;
-                current_value += input[i] * (f32::consts::PI * k_float * i_float / ((size - 1) as f32)).cos();
+                current_value += input[i] *
+                                 (f32::consts::PI * k_float * i_float / ((size - 1) as f32)).cos();
             }
 
             current_value *= 2_f32;

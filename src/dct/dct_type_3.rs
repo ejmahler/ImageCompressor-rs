@@ -12,7 +12,9 @@ pub struct DCT3<T> {
     input_correction: Vec<Complex<T>>,
 }
 
-impl<T> DCT3<T> where T: Signed + FromPrimitive + Copy {
+impl<T> DCT3<T>
+    where T: Signed + FromPrimitive + Copy
+{
     /// Creates a new DCT3 context that will process signals of length `len`.
     pub fn new(len: usize) -> Self {
         let fft = rustfft::FFT::new(len, false);
@@ -23,8 +25,12 @@ impl<T> DCT3<T> where T: Signed + FromPrimitive + Copy {
             input_correction: (0..len)
                 .map(|i| i as f32 * 0.5 * f32::consts::PI / len as f32)
                 .map(|phase| Complex::from_polar(&0.5, &phase).conj())
-                .map(|c| Complex {re: FromPrimitive::from_f32(c.re).unwrap(),
-                                im: FromPrimitive::from_f32(c.im).unwrap()})
+                .map(|c| {
+                    Complex {
+                        re: FromPrimitive::from_f32(c.re).unwrap(),
+                        im: FromPrimitive::from_f32(c.im).unwrap(),
+                    }
+                })
                 .collect(),
         }
     }
@@ -39,43 +45,50 @@ impl<T> DCT3<T> where T: Signed + FromPrimitive + Copy {
 
         assert!(signal.len() == self.fft_input.len());
 
-        //compute the FFT input based on the correction factors
+        // compute the FFT input based on the correction factors
         for i in 0..signal.len() {
             unsafe {
-                let imaginary_part = if i == 0 { Zero::zero() } else { *signal.get_unchecked(signal.len() - i) };
-                *self.fft_input.get_unchecked_mut(i) = Complex::new(*signal.get_unchecked(i), imaginary_part) * *self.input_correction.get_unchecked(i);
+                let imaginary_part = if i == 0 {
+                    Zero::zero()
+                } else {
+                    *signal.get_unchecked(signal.len() - i)
+                };
+                *self.fft_input.get_unchecked_mut(i) = Complex::new(*signal.get_unchecked(i),
+                                                                    imaginary_part) *
+                                                       *self.input_correction.get_unchecked(i);
             }
         }
 
-        //run the fft
+        // run the fft
         self.fft.process(&self.fft_input, &mut self.fft_output);
 
-        //copy the first half of the fft output into the even elements of the spectrum
-        let even_end = (signal.len()+1)/2;
+        // copy the first half of the fft output into the even elements of the spectrum
+        let even_end = (signal.len() + 1) / 2;
         for i in 0..even_end {
             unsafe {
                 *spectrum.get_unchecked_mut(i * 2) = (*self.fft_output.get_unchecked(i)).re;
             }
         }
 
-        //copy the second half of the fft output into the odd elements, reversed
-        let odd_end = signal.len() - 1 - signal.len()%2;
-        for i in 0..signal.len()/2 {
+        // copy the second half of the fft output into the odd elements, reversed
+        let odd_end = signal.len() - 1 - signal.len() % 2;
+        for i in 0..signal.len() / 2 {
             unsafe {
-                *spectrum.get_unchecked_mut(odd_end - 2*i) = (*self.fft_output.get_unchecked(i + even_end)).re;
+                *spectrum.get_unchecked_mut(odd_end - 2 * i) =
+                    (*self.fft_output.get_unchecked(i + even_end)).re;
             }
         }
     }
 }
 
-//perform a 2-dimensional dct3 on the input data, putting the result into the input vector
+// perform a 2-dimensional dct3 on the input data, putting the result into the input vector
 pub fn dct3_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
     let mut intermediate = vec![0_f32; row_major_data.len()];
 
-    //transpose the data into the intermediate vector
+    // transpose the data into the intermediate vector
     math_utils::transpose(width, height, row_major_data, intermediate.as_mut_slice());
 
-    //perform DCTs down the columns
+    // perform DCTs down the columns
     {
         let mut height_dct = DCT3::new(height);
         for (input, output) in intermediate.chunks(height).zip(row_major_data.chunks_mut(height)) {
@@ -83,10 +96,10 @@ pub fn dct3_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
         }
     }
 
-    //transpose the data into the intermediate vector again
+    // transpose the data into the intermediate vector again
     math_utils::transpose(height, width, row_major_data, intermediate.as_mut_slice());
 
-    //perform DCTs down the columns
+    // perform DCTs down the columns
     {
         let mut width_dct = DCT3::new(width);
         for (input, output) in intermediate.chunks(width).zip(row_major_data.chunks_mut(width)) {
@@ -107,7 +120,7 @@ mod test {
     fn compare_float_vectors(expected: &[f32], observed: &[f32]) {
         assert_eq!(expected.len(), observed.len());
 
-        let tolerance : f32 = 0.0001;
+        let tolerance: f32 = 0.0001;
 
         for i in 0..expected.len() {
             assert!(fuzzy_cmp(observed[i], expected[i], tolerance));
@@ -128,7 +141,8 @@ mod test {
             for i in 1..(input.len()) {
                 let i_float = i as f32;
 
-                current_value += input[i] * (f32::consts::PI * i_float * (k_float + 0.5_f32) / size_float).cos();
+                current_value +=
+                    input[i] * (f32::consts::PI * i_float * (k_float + 0.5_f32) / size_float).cos();
             }
             result.push(current_value);
 

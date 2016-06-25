@@ -12,7 +12,9 @@ pub struct DCT2<T> {
     output_correction: Vec<Complex<T>>,
 }
 
-impl<T> DCT2<T> where T: Signed + FromPrimitive + Copy {
+impl<T> DCT2<T>
+    where T: Signed + FromPrimitive + Copy
+{
     /// Creates a new DCT2 context that will process signals of length `len`.
     pub fn new(len: usize) -> Self {
         let fft = rustfft::FFT::new(len, false);
@@ -23,8 +25,12 @@ impl<T> DCT2<T> where T: Signed + FromPrimitive + Copy {
             output_correction: (0..len)
                 .map(|i| i as f32 * 0.5 * f32::consts::PI / len as f32)
                 .map(|phase| Complex::from_polar(&1.0, &phase).conj())
-                .map(|c| Complex {re: FromPrimitive::from_f32(c.re).unwrap(),
-                                im: FromPrimitive::from_f32(c.im).unwrap()})
+                .map(|c| {
+                    Complex {
+                        re: FromPrimitive::from_f32(c.re).unwrap(),
+                        im: FromPrimitive::from_f32(c.im).unwrap(),
+                    }
+                })
                 .collect(),
         }
     }
@@ -37,42 +43,46 @@ impl<T> DCT2<T> where T: Signed + FromPrimitive + Copy {
     /// specified in the struct's constructor.
     pub fn process(&mut self, signal: &[T], spectrum: &mut [T]) {
 
-        //we're going to convert this to a FFT. we'll do so by redordering the inputs, running the FFT, and then multiplying by a correction factor
+        // we're going to convert this to a FFT. we'll do so by redordering the inputs,
+        // running the FFT, and then multiplying by a correction factor
         assert!(signal.len() == self.fft_input.len());
 
-        //the first half of the array will be the even elements, in order
-        let even_end = (signal.len()+1)/2;
+        // the first half of the array will be the even elements, in order
+        let even_end = (signal.len() + 1) / 2;
         for i in 0..even_end {
             unsafe {
-                *self.fft_input.get_unchecked_mut(i) = Complex::from(*signal.get_unchecked(i*2));
+                *self.fft_input.get_unchecked_mut(i) = Complex::from(*signal.get_unchecked(i * 2));
             }
         }
 
-        //the second half is the odd elements in reverse order
-        let odd_end = signal.len() - 1 - signal.len()%2;
-        for i in 0..signal.len()/2 {
+        // the second half is the odd elements in reverse order
+        let odd_end = signal.len() - 1 - signal.len() % 2;
+        for i in 0..signal.len() / 2 {
             unsafe {
-                *self.fft_input.get_unchecked_mut(even_end + i) = Complex::from(*signal.get_unchecked(odd_end - 2*i));
+                *self.fft_input.get_unchecked_mut(even_end + i) =
+                    Complex::from(*signal.get_unchecked(odd_end - 2 * i));
             }
         }
 
-        //run the fft
+        // run the fft
         self.fft.process(&self.fft_input, &mut self.fft_output);
 
-        //apply a correction factor to the result
+        // apply a correction factor to the result
         for i in 0..signal.len() {
             unsafe {
-                *spectrum.get_unchecked_mut(i) = (*self.fft_output.get_unchecked(i) * *self.output_correction.get_unchecked(i)).re;
+                *spectrum.get_unchecked_mut(i) = (*self.fft_output.get_unchecked(i) *
+                                                  *self.output_correction.get_unchecked(i))
+                    .re;
             }
         }
     }
 }
 
-//perform a 2-dimensional dct2 on the input data, putting the result into the input vector
+// perform a 2-dimensional dct2 on the input data, putting the result into the input vector
 pub fn dct2_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
     let mut intermediate = vec![0_f32; row_major_data.len()];
 
-    //perform DCTs down the rows
+    // perform DCTs down the rows
     {
         let mut width_dct = DCT2::new(width);
         for (input, output) in row_major_data.chunks(width).zip(intermediate.chunks_mut(width)) {
@@ -80,10 +90,11 @@ pub fn dct2_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
         }
     }
 
-    //transpose the result back into the input vector
+    // transpose the result back into the input vector
     math_utils::transpose(width, height, intermediate.as_slice(), row_major_data);
 
-    //perform DCTs down the rows of the transposed data, putting the result back in the original input
+    // perform DCTs down the rows of the transposed data
+    // putting the result back in the original input
     {
         let mut height_dct = DCT2::new(height);
         for (input, output) in row_major_data.chunks(height).zip(intermediate.chunks_mut(height)) {
@@ -91,7 +102,7 @@ pub fn dct2_2d(width: usize, height: usize, row_major_data: &mut [f32]) {
         }
     }
 
-    //transpose the result back into the input vector
+    // transpose the result back into the input vector
     math_utils::transpose(height, width, intermediate.as_slice(), row_major_data);
 }
 
@@ -107,7 +118,7 @@ mod test {
     fn compare_float_vectors(expected: &[f32], observed: &[f32]) {
         assert_eq!(expected.len(), observed.len());
 
-        let tolerance : f32 = 0.0001;
+        let tolerance: f32 = 0.0001;
 
         for i in 0..expected.len() {
             assert!(fuzzy_cmp(observed[i], expected[i], tolerance));
@@ -128,7 +139,8 @@ mod test {
             for i in 0..(input.len()) {
                 let i_float = i as f32;
 
-                current_value += input[i] * (f32::consts::PI * k_float * (i_float + 0.5_f32) / size_float).cos();
+                current_value +=
+                    input[i] * (f32::consts::PI * k_float * (i_float + 0.5_f32) / size_float).cos();
             }
             result.push(current_value);
 
