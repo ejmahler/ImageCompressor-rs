@@ -93,19 +93,13 @@ fn uncompress_color_channel(width: usize, height: usize, quantized_data: Vec<i32
     let mut decoded_data = quantize::decode(width, height, &quantized_data);
 
     //run a 2d DCT3 on the input data
-    println!("");
-    println!("{:?}", quantized_data[..20].to_vec());
-    println!("{:?}", decoded_data[..20].to_vec());
     dct::dct3_2d(width, height, &mut decoded_data);
-    
 
     //finally, scale the result by 4 / n^2 to get the original image data (or what's left of it)
     let result_scale = 4_f32 / (decoded_data.len()) as f32;
     for item in decoded_data.iter_mut() {
         *item *= result_scale;
     }
-
-    println!("{:?}", decoded_data[..20].to_vec());
 
     return decoded_data;
 }
