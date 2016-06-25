@@ -14,6 +14,7 @@ mod compress;
 mod uncompress;
 mod quantize;
 mod compressed_image;
+mod color_space;
 mod dct;
 
 #[allow(non_camel_case_types)]

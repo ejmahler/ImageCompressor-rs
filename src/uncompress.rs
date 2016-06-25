@@ -6,6 +6,7 @@ use ::image;
 
 use dct;
 use quantize;
+use color_space;
 
 use flate2::read::ZlibDecoder;
 
@@ -67,19 +68,19 @@ fn uncompress(input: &mut File, output: &mut File) {
     let uncompressed_red = uncompress_color_channel(width as usize, height as usize, deserialized.take_red());
     let uncompressed_green = uncompress_color_channel(width as usize, height as usize, deserialized.take_green());
     let uncompressed_blue = uncompress_color_channel(width as usize, height as usize, deserialized.take_blue());
-    let uncompressed_alpha = uncompress_color_channel(width as usize, height as usize, deserialized.take_alpha());
 
     //create the output image and load the data in
     let mut output_image = image::ImageBuffer::new(width, height);
 
     for x in 0..width {
         for y in 0..height {
-            let pixel = image::Rgba([
-                convert_to_8bit(uncompressed_red[(x + y * width) as usize]),
-                convert_to_8bit(uncompressed_green[(x + y * width) as usize]),
-                convert_to_8bit(uncompressed_blue[(x + y * width) as usize]),
-                convert_to_8bit(uncompressed_alpha[(x + y * width) as usize]),
-                ]);
+            let (r,g,b) = color_space::ycbcr_to_rgb(
+                uncompressed_red[(x + y * width) as usize],
+                uncompressed_green[(x + y * width) as usize],
+                uncompressed_blue[(x + y * width) as usize]
+                );
+
+            let pixel = image::Rgba([r,g,b,255]);
 
             output_image.put_pixel(x,y,pixel);
         }
@@ -102,18 +103,4 @@ fn uncompress_color_channel(width: usize, height: usize, quantized_data: Vec<i32
     }
 
     return decoded_data;
-}
-
-fn convert_to_8bit(item: f32) -> u8 {
-    let result = item + 128_f32;
-
-    if result > 255_f32 {
-        return 255;
-    }
-    else if result < 0_f32 {
-        return 0;
-    }
-    else {
-        return result.round() as u8;
-    }
 }

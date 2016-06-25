@@ -8,6 +8,7 @@ use ::image::GenericImage;
 
 use dct;
 use quantize;
+use color_space;
 
 use compressed_image;
 use protobuf::Message;
@@ -65,17 +66,17 @@ fn compress(input: &File, output: &mut File) {
     let mut red_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
     let mut green_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
     let mut blue_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
-    let mut alpha_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
 
     //split the color data into channels
     for y in 0..height {
         for x in 0..width {
             let pixel = input_image.get_pixel(x, y);
 
-            red_channel.push((pixel[0] as f32) - 128_f32);
-            green_channel.push((pixel[1] as f32) - 128_f32);
-            blue_channel.push((pixel[2] as f32) - 128_f32);
-            alpha_channel.push((pixel[3] as f32) - 128_f32);
+            let (y, cb, cr) = color_space::rgb_to_ycbcr(pixel[0], pixel[1], pixel[2]);
+
+            red_channel.push(y);
+            green_channel.push(cb);
+            blue_channel.push(cr);
         }
     }
 
@@ -87,7 +88,6 @@ fn compress(input: &File, output: &mut File) {
     serializer.set_red(compress_color_channel(width as usize, height as usize, red_channel));
     serializer.set_green(compress_color_channel(width as usize, height as usize, green_channel));
     serializer.set_blue(compress_color_channel(width as usize, height as usize, blue_channel));
-    serializer.set_alpha(compress_color_channel(width as usize, height as usize, alpha_channel));
 
     let serialized_bytes = serializer.write_to_bytes().unwrap();
 
