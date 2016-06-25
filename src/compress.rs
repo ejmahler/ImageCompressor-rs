@@ -43,13 +43,18 @@ pub fn compress_file(input_filename: &Path) {
 
 pub fn compress_file_to_output(input_filename: &Path, output_filename: &Path) {
     // verify that the filename extensions match what we expect
-    match input_filename.extension() {
-        Some(ext) => assert!(ext == "png", "Input file for compression must be PNG"),
-        _ => {}
+    if let Some(extension) = input_filename.extension() {
+        assert!(extension == "png",
+                "Input file for compression must be 'PNG'")
+    } else {
+        panic!("Input file for compression must be 'msca'")
     }
-    match output_filename.extension() {
-        Some(ext) => assert!(ext == "msca", "Output file for compression must be 'msca'"),
-        _ => {}
+
+    if let Some(extension) = input_filename.extension() {
+        assert!(extension == "msca",
+                "Input file for compression must be 'msca'")
+    } else {
+        panic!("Output file for compression must be msca")
     }
 
     let input_file = File::open(&Path::new(&input_filename)).unwrap();
@@ -67,7 +72,7 @@ fn compress(input: &File, output: &mut File) {
     let mut green_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
     let mut blue_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
 
-    //split the color data into channels
+    // split the color data into channels
     for y in 0..height {
         for x in 0..width {
             let pixel = input_image.get_pixel(x, y);
@@ -84,7 +89,7 @@ fn compress(input: &File, output: &mut File) {
     serializer.set_width(width);
     serializer.set_height(height);
 
-    //compress the data and put it directly into the serializer
+    // compress the data and put it directly into the serializer
     serializer.set_red(compress_color_channel(width as usize, height as usize, red_channel));
     serializer.set_green(compress_color_channel(width as usize, height as usize, green_channel));
     serializer.set_blue(compress_color_channel(width as usize, height as usize, blue_channel));
@@ -101,7 +106,10 @@ fn compress(input: &File, output: &mut File) {
     let _ = enc.finish();
 }
 
-fn compress_color_channel(width: usize, height: usize, mut uncompressed_channel_data: Vec<f32>) -> Vec<i32> {
+fn compress_color_channel(width: usize,
+                          height: usize,
+                          mut uncompressed_channel_data: Vec<f32>)
+                          -> Vec<i32> {
     dct::dct2_2d(width, height, &mut uncompressed_channel_data);
-    return quantize::encode(width, height, &uncompressed_channel_data);
+    quantize::encode(width, height, &uncompressed_channel_data)
 }

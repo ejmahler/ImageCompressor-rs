@@ -26,11 +26,11 @@ enum Command {
 impl FromStr for Command {
     type Err = ();
     fn from_str(src: &str) -> Result<Command, ()> {
-        return match src {
+        match src {
             "compress" => Ok(Command::compress),
             "uncompress" => Ok(Command::uncompress),
             _ => Err(()),
-        };
+        }
     }
 }
 
@@ -62,7 +62,7 @@ fn main() {
         Command::compress => {
             // if the user supplied the optional output filename, supply it directly
             // otherwise call a different method to autogenerate it
-            if output_filename.len() > 0 {
+            if !output_filename.is_empty() {
                 compress::compress_file_to_output(Path::new(&input_filename),
                                                   Path::new(&output_filename))
             } else {
@@ -72,7 +72,7 @@ fn main() {
         Command::uncompress => {
             // if the user supplied the optional output filename, supply it directly
             // otherwise call a different method to autogenerate it
-            if output_filename.len() > 0 {
+            if !output_filename.is_empty() {
                 uncompress::uncompress_file_to_output(Path::new(&input_filename),
                                                       Path::new(&output_filename))
             } else {
