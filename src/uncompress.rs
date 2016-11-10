@@ -13,6 +13,13 @@ use flate2::read::ZlibDecoder;
 use protobuf;
 use compressed_image::compressed_image;
 
+#[derive(PartialEq)]
+enum ImageType {
+    Unknown,
+    MSCA,
+    Image(image::ImageFormat)
+}
+
 
 pub fn uncompress_file(input_filename: &Path) {
     if let Some(file_stem) = input_filename.file_stem() {
@@ -32,27 +39,41 @@ pub fn uncompress_file(input_filename: &Path) {
 
 pub fn uncompress_file_to_output(input_filename: &Path, output_filename: &Path) {
 
-    if let Some(extension) = input_filename.extension() {
-        assert!(extension == "msca",
-                "Input file for uncompression must be 'msca'")
-    } else {
-        panic!("Input file for uncompression must be 'msca'")
+    let input_format = determine_image_format(input_filename);
+    let output_format = determine_image_format(output_filename);
+
+    assert!(input_format == ImageType::MSCA, "Input file for uncompression must be in MSCA format");
+
+    match output_format {
+        ImageType::Image(format) => {
+            let mut input_file = File::open(&Path::new(&input_filename)).unwrap();
+            let mut output_file = File::create(&Path::new(&output_filename)).unwrap();
+
+            uncompress(&mut input_file, &mut output_file, format);
+        }
+        _ => panic!("Output file for uncompression must be PNG or JPEG format")
     }
-
-    if let Some(extension) = input_filename.extension() {
-        assert!(extension == "png",
-                "Input file for uncompression must be 'PNG'")
-    } else {
-        panic!("Output file for uncompression must be PNG")
-    }
-
-    let mut input_file = File::open(&Path::new(&input_filename)).unwrap();
-    let mut output_file = File::create(&Path::new(&output_filename)).unwrap();
-
-    uncompress(&mut input_file, &mut output_file);
 }
 
-fn uncompress(input: &mut File, output: &mut File) {
+fn determine_image_format(filename: &Path) -> ImageType {
+    if let Some(extension) = filename.extension() {
+        if let Some(extension_str) = extension.to_str() {
+            let extension_lowercase = extension_str.to_lowercase();
+
+            match extension_lowercase.as_ref() {
+                "png" => { return ImageType::Image(image::PNG); },
+                "jpg" => { return ImageType::Image(image::JPEG); },
+                "jpeg" => { return ImageType::Image(image::JPEG); }
+                "msca" => { return ImageType::MSCA; }
+                _ => { return ImageType::Unknown; }
+            }
+        }
+    }
+
+    ImageType::Unknown
+}
+
+fn uncompress(input: &mut File, output: &mut File, output_format: image::ImageFormat) {
 
     // uncompress data from input file
     let mut serialized = Vec::new();
@@ -87,7 +108,7 @@ fn uncompress(input: &mut File, output: &mut File) {
         }
     }
 
-    let _ = image::ImageRgba8(output_image).save(output, image::PNG);
+    let _ = image::ImageRgba8(output_image).save(output, output_format);
 }
 
 fn uncompress_color_channel(width: usize, height: usize, quantized_data: Vec<i32>) -> Vec<f32> {

@@ -1,5 +1,4 @@
 use std::fs::File;
-use std::io::BufReader;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
@@ -42,30 +41,22 @@ pub fn compress_file(input_filename: &Path) {
 }
 
 pub fn compress_file_to_output(input_filename: &Path, output_filename: &Path) {
-    // verify that the filename extensions match what we expect
-    if let Some(extension) = input_filename.extension() {
-        assert!(extension == "png",
-                "Input file for compression must be 'PNG'")
-    } else {
-        panic!("Input file for compression must be 'msca'")
-    }
 
-    if let Some(extension) = input_filename.extension() {
+    if let Some(extension) = output_filename.extension() {
         assert!(extension == "msca",
-                "Input file for compression must be 'msca'")
+                "Output file for compression must be 'msca'")
     } else {
         panic!("Output file for compression must be msca")
     }
 
-    let input_file = File::open(&Path::new(&input_filename)).unwrap();
+    
+    let input_image = image::open(input_filename).unwrap();
     let mut output_file = File::create(&Path::new(&output_filename)).unwrap();
 
-    compress(&input_file, &mut output_file);
+    compress(&input_image, &mut output_file);
 }
 
-fn compress(input: &File, output: &mut File) {
-    let input_image = image::load(BufReader::new(input), image::PNG).unwrap();
-
+fn compress(input_image: &image::DynamicImage, output: &mut File) {
     let (width, height) = input_image.dimensions();
 
     let mut red_channel: Vec<f32> = Vec::with_capacity(width as usize * height as usize);
